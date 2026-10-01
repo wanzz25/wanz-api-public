@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard - Wanz Api</title>
+  <link rel="icon" href="/views/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root{--bg:#0a0a0c;--panel:#1c1c1e;--card:#242426;--line:#3a3a3c;--text:#f4f4f5;--muted:#9ca3af;--accent:#e5e5e5;--warn:#f59e0b;--bad:#f87171}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.6 Outfit,sans-serif;
+      background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:32px 32px}
+    a{color:var(--accent)}
+    header,main{max-width:34rem;margin:0 auto;padding:1.25rem}
+    header{display:flex;align-items:center;justify-content:space-between;padding-bottom:0}
+    .brand{display:flex;align-items:center;gap:.6rem;color:var(--text);text-decoration:none;font-weight:600}
+    .brand img{width:28px;height:28px;border-radius:8px}
+    nav{display:flex;gap:1rem;font-size:.9rem}
+    nav a{color:var(--muted);text-decoration:none}
+    nav a:hover{color:var(--text)}
+    h1{font-size:1.75rem;line-height:1.2;margin:2rem 0 .5rem;font-weight:700}
+    p{margin:0 0 1rem;color:var(--muted)}
+    .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.25rem;margin-top:1rem}
+    .box h2{font-size:.95rem;font-weight:600;margin:0 0 .75rem;color:var(--muted)}
+    .who{display:flex;align-items:center;gap:.75rem}
+    .who img{width:44px;height:44px;border-radius:50%;background:var(--card)}
+    .who b{display:block;font-weight:600}
+    .who span{font-size:.85rem;color:var(--muted);word-break:break-all}
+    .who button{margin-left:auto}
+    .key{font:600 .95rem/1.4 "JetBrains Mono",monospace;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;word-break:break-all}
+    .row{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+    button{font:500 .875rem Outfit,sans-serif;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.55rem .95rem;cursor:pointer}
+    button:hover{border-color:var(--muted)}
+    button.main{background:var(--accent);color:#0a0a0c;border-color:var(--accent)}
+    button.danger{color:var(--bad)}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .bar{height:8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+    .bar i{display:block;height:100%;width:0;background:var(--accent)}
+    .bar i.warn{background:var(--warn)}
+    .bar i.bad{background:var(--bad)}
+    .meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-top:.5rem;gap:1rem}
+    pre{margin:0;font:400 .8rem/1.5 "JetBrains Mono",monospace;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;overflow-x:auto;color:var(--accent)}
+    #gbtn{margin-top:1.25rem;min-height:44px}
+    .err{color:var(--bad);font-size:.9rem;margin-top:.75rem}
+    [hidden]{display:none!important}
+    @media (prefers-reduced-motion:no-preference){.bar i{transition:width .5s ease}}
+  </style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/"><img src="/views/logo.png" alt=""> Wanz Api</a>
+  <nav><a href="/playground">Playground</a><a href="/api">Dokumentasi</a></nav>
+</header>
+<main>
+  <section id="login" hidden>
+    <h1>Masuk untuk dapat apikey gratis</h1>
+    <p>Apikey dibuat otomatis untuk akun Google kamu. Gratis <span class="lim">500</span> request per hari, kuota reset tiap pukul 00.00 WIB.</p>
+    <div id="gbtn"></div>
+    <div class="err" id="loginErr" role="alert" hidden></div>
+  </section>
+
+  <section id="app" hidden>
+    <h1>Dashboard</h1>
+    <div class="box who">
+      <img id="avatar" alt="" referrerpolicy="no-referrer">
+      <div><b id="name"></b><span id="email"></span></div>
+      <button id="logout">Keluar</button>
+    </div>
+
+    <div class="box">
+      <h2>Apikey kamu</h2>
+      <div class="key" id="key"></div>
+      <div class="row">
+        <button id="toggle">Tampilkan</button>
+        <button id="copy" class="main">Salin apikey</button>
+        <button id="regen" class="danger">Buat ulang</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Kuota hari ini</h2>
+      <div class="bar" role="progressbar" aria-label="Kuota terpakai" id="pb"><i id="fill"></i></div>
+      <div class="meta"><span id="used"></span><span id="reset"></span></div>
+    </div>
+
+    <div class="box">
+      <h2>Contoh pemakaian</h2>
+      <pre id="curl"></pre>
+      <div class="row"><a href="/api">Lihat semua endpoint</a></div>
+    </div>
+  </section>
+  <div class="err" id="fatal" role="alert" hidden></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let me = null, shown = false, clientId = '';
+
+const mask = k => k.replace(/^(Api-).+(-wanz)$/, '$1••••••••••••••••$2');
+function fmtReset(s){const h=Math.floor(s/3600),m=Math.ceil((s%3600)/60);return h?`Reset ${h} jam ${m} menit lagi`:`Reset ${m} menit lagi`}
+
+function render(){
+  $('login').hidden = !!me; $('app').hidden = !me;
+  if(!me) return;
+  $('avatar').src = me.user.picture || '';
+  $('name').textContent = me.user.name;
+  $('email').textContent = me.user.email;
+  $('key').textContent = shown ? me.apikey : mask(me.apikey);
+  $('toggle').textContent = shown ? 'Sembunyikan' : 'Tampilkan';
+  const pct = Math.min(100, me.used / me.limit * 100);
+  const f = $('fill'); f.style.width = pct + '%'; f.className = pct >= 100 ? 'bad' : pct >= 90 ? 'warn' : '';
+  $('pb').setAttribute('aria-valuenow', me.used); $('pb').setAttribute('aria-valuemax', me.limit);
+  $('used').textContent = `${me.used} dari ${me.limit} request terpakai`;
+  $('reset').textContent = fmtReset(me.resetIn);
+  $('curl').textContent = `curl "${location.origin}/api/tools/hash-md5?apikey=${me.apikey}&text=halo"`;
+}
+
+async function api(path, opt){
+  const r = await fetch(path, Object.assign({credentials:'same-origin'}, opt));
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok) throw Object.assign(new Error(d.error || 'Permintaan gagal'), {status:r.status});
+  return d;
+}
+
+async function onCredential(resp){
+  $('loginErr').hidden = true;
+  try{
+    me = await api('/auth/google', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({credential:resp.credential})});
+    render();
+  }catch(e){ $('loginErr').textContent = e.message; $('loginErr').hidden = false; }
+}
+
+function initGoogle(){
+  if(!clientId || !window.google || !google.accounts || initGoogle.done) return;
+  initGoogle.done = true;
+  google.accounts.id.initialize({client_id:clientId, callback:onCredential});
+  google.accounts.id.renderButton($('gbtn'), {theme:'filled_black', size:'large', shape:'pill', text:'continue_with'});
+}
+window.onGoogleLibraryLoad = initGoogle;
+
+$('toggle').onclick = () => { shown = !shown; render(); };
+$('copy').onclick = async () => {
+  try{ await navigator.clipboard.writeText(me.apikey); $('copy').textContent = 'Tersalin'; }
+  catch(_){ shown = true; render(); $('copy').textContent = 'Salin manual'; }
+  setTimeout(()=>$('copy').textContent='Salin apikey', 1800);
+};
+$('regen').onclick = async () => {
+  if(!confirm('Apikey lama langsung tidak berlaku. Lanjutkan?')) return;
+  try{ me = await api('/auth/regenerate-key', {method:'POST'}); shown = true; render(); }
+  catch(e){ alert(e.message); }
+};
+$('logout').onclick = async () => { await api('/auth/logout', {method:'POST'}).catch(()=>{}); me = null; shown = false; render(); if(window.google) google.accounts.id.disableAutoSelect(); };
+
+(async () => {
+  try{
+    const cfg = await api('/auth/config');
+    clientId = cfg.googleClientId;
+    document.querySelectorAll('.lim').forEach(e => e.textContent = cfg.dailyLimit);
+    try{ me = await api('/auth/me'); }catch(e){ if(e.status !== 401) throw e; }
+    render();
+    if(!me){
+      if(!cfg.loginReady){ $('gbtn').hidden = true; $('fatal').textContent = 'Login Google belum dikonfigurasi di server (GOOGLE_CLIENT_ID kosong).'; $('fatal').hidden = false; }
+      else initGoogle();
+    }
+  }catch(e){ $('fatal').textContent = 'Gagal memuat: ' + e.message; $('fatal').hidden = false; }
+})();
+</script>
+</body>
+</html>
